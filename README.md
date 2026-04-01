@@ -13,7 +13,7 @@ PF è stato sviluppato per OpenBSD, ma è stato portato su molti altri sistemi o
         b. Polizza Default: "Block all" in ingresso per massimizzare la sicurezza (Whitelisting).
         c. Rate Limiting: Protezione contro attacchi Brute Force su SSH e Mumble. Se un IP supera le soglie di connessione, viene inserito automaticamente in una tabella di blocco a livello kernel.
 
-2. GeoBlocking Dinamico. Per questa sezione ringrazio il lavoro del Prof. [Stefano Marinelli](https://it-notes.dragas.net/2025/05/13/the_server_that_wasnt_meant_to_exist):
+2. GeoBlocking Dinamico. Per questa sezione ringrazio il lavoro del Prof. [Stefano Marinelli](https://it-notes.dragas.net/2024/06/16/freebsd-blocking-country-access):
     - Integrazione con ipdbtools per il filtraggio geografico.
     - Automazione: Uno script (update_blocked_countries.sh) scarica i database IP aggiornati.
     - Efficienza: Migliaia di range IP vengono caricati in tabelle PF ottimizzate per non impattare sulle prestazioni della CPU.
