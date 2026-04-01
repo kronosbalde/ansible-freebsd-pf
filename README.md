@@ -1,15 +1,3 @@
-.
-├── group_vars/
-│   └── bsd_router.yml.example # Variabili di rete (IP, Porte, Interfacce)
-├── roles/
-│   └── freebsd_router/        # Logica principale dell'automazione
-│       ├── handlers/          # Ricaricamento sicuro dei servizi (PF)
-│       ├── tasks/             # Installazione pkg, sysctl, cron e config
-│       └── templates/         # Template Jinja2 per pf.conf e script sh
-├── hosts.ini.example          # Esempio di inventario
-├── site.yml                   # Playbook principale
-└── ansible.cfg                # Ottimizzazioni per FreeBSD (become: doas)
-
 # FreeBSD Ansible Router & Firewall
 Questo repository contiene un'automazione Ansible per trasformare un'istanza FreeBSD in un router di rete professionale con firewalling avanzato e protezione dinamica. Nel caso specifico ho utilizzato Proxmox per creare due interfacce virtuali.
 
