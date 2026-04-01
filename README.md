@@ -1,5 +1,6 @@
 # FreeBSD Ansible Router & Firewall
-Questo repository contiene un'automazione Ansible per trasformare un'istanza FreeBSD in un router di rete professionale con firewalling avanzato e protezione dinamica. Nel caso specifico ho utilizzato Proxmox per creare due interfacce virtuali.
+Questo repository contiene un'automazione Ansible per trasformare un'istanza FreeBSD in un router di rete professionale con firewalling avanzato e protezione dinamica. Nel caso specifico ho utilizzato Proxmox VE per creare due interfacce virtuali da "attaccare" alla macchina virtuale.
+Questa config può essere applicata tranquillamente in ambiente reale.
 
 La prima, la più interna, rappresenta la rete che ospita un servizio d'esempio di chat vocale, un'istanza di Mumble configurata su un container LXC. Il protocollo UDP richiede stabilità ed efficienza, FreeBSD con PF come Firewall si sposa bene con questi requisiti dato il network stack maturo e ottimizzato. 
 
