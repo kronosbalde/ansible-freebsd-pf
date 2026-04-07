@@ -1,5 +1,5 @@
 # ==============================================================================
-# --- 1. Macro & Tables ---
+# --- 1. Macro & Tables (Definizioni) ---
 # ==============================================================================
 ext_if      = "{{ ext_if }}"
 int_if      = "{{ int_if }}"
@@ -9,7 +9,7 @@ admin_ip    = "{{ admin_ip }}"
 mumble_ip   = "{{ mumble_jail_ip }}"
 mumble_port = "{{ mumble_port }}"
 
-# Tabelle dinamiche e statiche
+# Tabelle per una gestione dinamica e sicura
 table <trusted_lan>       const { {{ admin_ip }}, 127.0.0.1 }
 table <bruteforce>        persist
 table <blocked_countries> persist
@@ -21,57 +21,59 @@ set skip on lo0
 set block-policy drop
 set loginterface $ext_if
 
-# Pulizia pacchetti e riassemblaggio frammenti
+# Protezione contro frammentazione e pacchetti malformati
 scrub in all fragment reassemble
 
 # ==============================================================================
 # --- 3. Translation (NAT & RDR) ---
 # ==============================================================================
-# NAT: permette alla LAN di uscire su internet
+# NAT: Permette alla rete 10.0.0.0/24 di uscire su Internet tramite l'IP 192.168.0.30
 nat on $ext_if from $int_net to any -> ($ext_if) static-port
 
-# Redirect Mumble (Port Forwarding)
+# Redirect Mumble: Traffico dall'esterno verso il container LXC/Jail
 rdr on $ext_if proto { tcp, udp } from any to ($ext_if) port $mumble_port -> $mumble_ip
 
 # ==============================================================================
-# --- 4. Filtering Rules ---
+# --- 4. Filtering Rules (Ordine: Block -> Pass) ---
 # ==============================================================================
 
-# --- A. Blocchi immediati (Anti-Lockout e Sicurezza) ---
+# --- A. Blocchi Immediati (Sicurezza) ---
 block in quick from <bruteforce>
 block in quick from <blocked_countries>
 block in all
 
-# --- B. Traffico in uscita (Outbound) ---
-# Il router e la LAN possono uscire ovunque
+# --- B. Traffico in Uscita (Outbound) ---
+# Permette al router stesso e alla LAN di generare traffico verso l'esterno
 pass out all keep state
 
-# --- C. Accesso al Router (Servizi Locali) ---
+# --- C. Accesso ai Servizi Locali (Router) ---
 
-# SSH: Accesso limitato con protezione bruteforce
+# DHCP: Fondamentale per assegnare IP sulla rete interna (vtnet1)
+# Il traffico deve essere accettato anche se il client non ha ancora un IP (any)
+pass in quick on $int_if proto udp from any port 68 to 255.255.255.255 port 67
+pass out quick on $int_if proto udp from $int_if port 67 to any port 68
+
+# SSH: Accesso protetto da Admin sulla WAN
 pass in quick on $ext_if proto tcp from <trusted_lan> to ($ext_if) port $ssh_port \
     flags S/SA keep state \
     (max-src-conn 5, max-src-conn-rate 3/30, overload <bruteforce> flush global)
 
-# DNS (Unbound): Permetti query dalla LAN verso il router
-# Nota: Usiamo $int_if:network per essere dinamici
-pass in quick on $int_if proto { tcp, udp } from $int_if:network to $int_if port 53 \
-    keep state
+# DNS (Unbound): Risoluzione per i client della rete interna
+pass in quick on $int_if proto { tcp, udp } from $int_if:network to $int_if port 53 keep state
 
-# ICMP: Permetti i ping (utile per troubleshooting)
+# ICMP: Permette il ping per diagnostica (Interno e Admin esterno)
 pass in quick on $int_if proto icmp from $int_if:network to $int_if
 pass in quick on $ext_if proto icmp from <trusted_lan> to ($ext_if)
 
-# --- D. Regole per il traffico passato (Forwarding) ---
+# --- D. Forwarding (Traffico verso i Server interni) ---
 
-# Mumble (traffico verso la Jail/Server interno)
+# Mumble: Accesso pubblico al server 10.0.0.5
 pass in quick on $ext_if proto tcp from any to $mumble_ip port $mumble_port \
     flags S/SA keep state \
     (max-src-conn 20, max-src-conn-rate 10/60, overload <bruteforce> flush global)
 
-pass in quick on $ext_if proto udp from any to $mumble_ip port $mumble_port \
-    keep state
+pass in quick on $ext_if proto udp from any to $mumble_ip port $mumble_port keep state
 
-# --- E. Interfaccia Interna (Generale) ---
-# Permette il traffico dalla LAN verso internet (passa attraverso il firewall)
+# --- E. Forwarding Generale LAN (Traffico che attraversa il Router) ---
+# Permette alla LAN (10.0.0.0/24) di navigare su Internet
 pass in on $int_if from $int_if:network to any keep state

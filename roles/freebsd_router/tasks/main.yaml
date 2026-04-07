@@ -113,3 +113,30 @@
     name: unbound
     state: started
 
+# Installazione DHCP Server
+- name: Installazione ISC DHCP Server
+  community.general.pkgng:
+    name: isc-dhcp44-server
+    state: present
+
+- name: Configurazione DHCPD
+  template:
+    src: dhcpd.conf.j2
+    dest: /usr/local/etc/dhcpd.conf
+    owner: root
+    group: wheel
+    mode: '0644'
+  notify: restart dhcpd
+
+- name: Abilitazione DHCPD nel rc.conf e selezione interfaccia
+  community.general.sysrc:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+  loop:
+    - { key: "dhcpd_enable", value: "YES" }
+    - { key: "dhcpd_ifaces", value: "{{ int_if }}" } # vtnet1
+
+- name: Assicura che DHCPD sia avviato
+  service:
+    name: isc-dhcpd
+    state: started
