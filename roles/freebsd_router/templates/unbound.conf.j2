@@ -1,18 +1,24 @@
 server:
     verbosity: 1
     interface: 127.0.0.1
-    interface: {{ ansible_default_ipv4.address }}
-    do-tcp: yes
-    do-udp: yes
+    interface: {{ lan_ip | default(ansible_default_ipv4.address) }}
     do-ip4: yes
     do-ip6: no
+    do-udp: yes
+    do-tcp: yes
+
+    # Sicurezza
     access-control: 127.0.0.0/8 allow
     access-control: {{ lan_network | default('192.168.1.0/24') }} allow
+    hide-identity: yes
+    hide-version: yes
+
+    # Performance
     prefetch: yes
     cache-min-ttl: 3600
     cache-max-ttl: 86400
 
 forward-zone:
     name: "."
-    forward-addr: 9.9.9.9
-    forward-addr: 1.1.1.1
+    forward-addr: 9.9.9.9        # Quad9
+    forward-addr: 1.1.1.1        # Cloudflare

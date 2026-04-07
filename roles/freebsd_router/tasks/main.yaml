@@ -84,3 +84,32 @@
     name: net.inet.ip.forwarding
     value: '1'
     state: present
+
+# ... (dopo il task del forwarding nel kernel)
+
+- name: Installazione di Unbound (solitamente base su FreeBSD, ma assicuriamoci)
+  community.general.pkgng:
+    name: unbound
+    state: present
+
+# ... Configurazione Unbound come DNS Resolver
+- name: Configurazione di Unbound
+  template:
+    src: unbound.conf.j2
+    dest: /usr/local/etc/unbound/unbound.conf
+    owner: root
+    group: wheel
+    mode: '0644'
+    validate: /usr/local/sbin/unbound-checkconf %s
+  notify: restart unbound
+
+- name: Abilitazione Unbound nel rc.conf
+  community.general.sysrc:
+    name: "unbound_enable"
+    value: "YES"
+
+- name: Assicura che Unbound sia avviato
+  service:
+    name: unbound
+    state: started
+

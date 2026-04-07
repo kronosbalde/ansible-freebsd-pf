@@ -1,51 +1,77 @@
-# --- 1. Macro & Tables (Dichiarazioni) ---
-ext_if   = "{{ ext_if }}"
-int_if   = "{{ int_if }}"
-int_net  = "{{ int_net }}"
-ssh_port = "{{ ssh_port }}"
-admin_ip = "{{ admin_ip }}"
+# ==============================================================================
+# --- 1. Macro & Tables ---
+# ==============================================================================
+ext_if      = "{{ ext_if }}"
+int_if      = "{{ int_if }}"
+int_net     = "{{ int_net }}"
+ssh_port    = "{{ ssh_port }}"
+admin_ip    = "{{ admin_ip }}"
+mumble_ip   = "{{ mumble_jail_ip }}"
+mumble_port = "{{ mumble_port }}"
 
-table <trusted_lan> const { {{ admin_ip }}, 127.0.0.1 }
-table <bruteforce> persist
-table <blocked_countries> persist # Tabella per il GeoBlocking
+# Tabelle dinamiche e statiche
+table <trusted_lan>       const { {{ admin_ip }}, 127.0.0.1 }
+table <bruteforce>        persist
+table <blocked_countries> persist
 
-# --- 2. Options (Opzioni globali) ---
+# ==============================================================================
+# --- 2. Options & Normalization ---
+# ==============================================================================
 set skip on lo0
+set block-policy drop
+set loginterface $ext_if
 
-# --- 3. Normalization (Pulizia pacchetti) ---
-scrub all reassemble tcp fragment reassemble
+# Pulizia pacchetti e riassemblaggio frammenti
+scrub in all fragment reassemble
 
-# --- 4. Translation (NAT & RDR) ---
-# Il NAT e il Port Forwarding devono venire PRIMA del filtraggio
+# ==============================================================================
+# --- 3. Translation (NAT & RDR) ---
+# ==============================================================================
+# NAT: permette alla LAN di uscire su internet
 nat on $ext_if from $int_net to any -> ($ext_if) static-port
-rdr on $ext_if proto { tcp, udp } from any to ($ext_if) port {{ mumble_port }} -> {{ mumble_jail_ip }}
 
-# --- 5. Filtering (Regole di passaggio/blocco) ---
-# Blocchi immediati (Quick)
+# Redirect Mumble (Port Forwarding)
+rdr on $ext_if proto { tcp, udp } from any to ($ext_if) port $mumble_port -> $mumble_ip
+
+# ==============================================================================
+# --- 4. Filtering Rules ---
+# ==============================================================================
+
+# --- A. Blocchi immediati (Anti-Lockout e Sicurezza) ---
 block in quick from <bruteforce>
-block drop log quick from <blocked_countries> # <--- NUOVA REGOLA
-# Policy di default
+block in quick from <blocked_countries>
 block in all
 
-# SSH con protezione Overload
+# --- B. Traffico in uscita (Outbound) ---
+# Il router e la LAN possono uscire ovunque
+pass out all keep state
+
+# --- C. Accesso al Router (Servizi Locali) ---
+
+# SSH: Accesso limitato con protezione bruteforce
 pass in quick on $ext_if proto tcp from <trusted_lan> to ($ext_if) port $ssh_port \
     flags S/SA keep state \
     (max-src-conn 5, max-src-conn-rate 3/30, overload <bruteforce> flush global)
 
-# Accesso LAN -> Router
-pass in quick on $ext_if from $admin_ip to $int_net keep state
+# DNS (Unbound): Permetti query dalla LAN verso il router
+# Nota: Usiamo $int_if:network per essere dinamici
+pass in quick on $int_if proto { tcp, udp } from $int_if:network to $int_if port 53 \
+    keep state
 
-# Mumble TCP (Controllo)
-pass in quick on $ext_if proto tcp from any to {{ mumble_jail_ip }} port {{ mumble_port }} \
+# ICMP: Permetti i ping (utile per troubleshooting)
+pass in quick on $int_if proto icmp from $int_if:network to $int_if
+pass in quick on $ext_if proto icmp from <trusted_lan> to ($ext_if)
+
+# --- D. Regole per il traffico passato (Forwarding) ---
+
+# Mumble (traffico verso la Jail/Server interno)
+pass in quick on $ext_if proto tcp from any to $mumble_ip port $mumble_port \
     flags S/SA keep state \
     (max-src-conn 20, max-src-conn-rate 10/60, overload <bruteforce> flush global)
 
-# Mumble UDP (Voce)
-pass in quick on $ext_if proto udp from any to {{ mumble_jail_ip }} port {{ mumble_port }} \
+pass in quick on $ext_if proto udp from any to $mumble_ip port $mumble_port \
     keep state
 
-# Interfaccia interna
-pass in on $int_if from $int_if:network to any
-
-# Traffico in uscita (Outbound)
-pass out all keep state
+# --- E. Interfaccia Interna (Generale) ---
+# Permette il traffico dalla LAN verso internet (passa attraverso il firewall)
+pass in on $int_if from $int_if:network to any keep state
