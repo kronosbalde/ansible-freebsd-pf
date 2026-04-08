@@ -140,3 +140,25 @@
   service:
     name: isc-dhcpd
     state: started
+
+# --- Aggiornamenti di sicurezza ---
+# Eseguire manualmente con: ansible-playbook -i hosts.ini site.yml -K --tags upgrade
+
+- name: Aggiornamento pacchetti installati
+  community.general.pkgng:
+    name: "*"
+    state: latest
+  tags: [upgrade, never]
+
+- name: Audit pacchetti per vulnerabilità note
+  command: pkg audit -F
+  register: pkg_audit
+  changed_when: false
+  failed_when: false
+  tags: [upgrade, never]
+
+- name: Mostra risultato audit
+  debug:
+    var: pkg_audit.stdout_lines
+  when: pkg_audit.stdout_lines | length > 0
+  tags: [upgrade, never]
