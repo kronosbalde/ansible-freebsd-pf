@@ -1,18 +1,19 @@
 ---
-- name: reload pf
-  shell: /sbin/pfctl -f /etc/pf.conf
+- name: Reload pf
+  ansible.builtin.command: /sbin/pfctl -f /etc/pf.conf
+  changed_when: true
 
-- name: restart sshd
-  service:
+- name: Restart sshd
+  ansible.builtin.service:
     name: sshd
     state: restarted
 
-- name: restart unbound
-  service:
+- name: Restart unbound
+  ansible.builtin.service:
     name: unbound
     state: restarted
 
-- name: restart dhcpd
-  service:
+- name: Restart dhcpd
+  ansible.builtin.service:
     name: isc-dhcpd
     state: restarted

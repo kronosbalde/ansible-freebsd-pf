@@ -18,7 +18,7 @@
     - {key: "suricata_interface", value: "{{ ext_if }}"}
 
 - name: Creazione directory socket suricatasc
-  file:
+  ansible.builtin.file:
     path: /var/run/suricata
     state: directory
     owner: root
@@ -26,7 +26,7 @@
     mode: '0755'
 
 - name: Disabilita regole SCADA/ICS non necessarie
-  copy:
+  ansible.builtin.copy:
     content: |
       group:modbus
       group:dnp3
@@ -36,21 +36,21 @@
     mode: '0644'
 
 - name: Primo aggiornamento ruleset (Emerging Threats Open)
-  command: suricata-update --disable-conf /usr/local/etc/suricata/disable.conf
+  ansible.builtin.command: suricata-update --disable-conf /usr/local/etc/suricata/disable.conf
   args:
     creates: /var/lib/suricata/rules/suricata.rules
 
 - name: Deploy configurazione Suricata
-  template:
+  ansible.builtin.template:
     src: "{{ playbook_dir }}/roles/freebsd_router/templates/suricata.yaml.j2"
     dest: /usr/local/etc/suricata/suricata.yaml
     owner: root
     group: wheel
     mode: '0644'
-  notify: restart suricata
+  notify: Restart suricata
 
 - name: Automazione aggiornamento ruleset via Cron
-  cron:
+  ansible.builtin.cron:
     name: "Suricata ruleset update"
     user: root
     hour: "3"
@@ -58,7 +58,7 @@
     job: "/usr/local/bin/suricata-update --disable-conf /usr/local/etc/suricata/disable.conf > /dev/null 2>&1 && /usr/sbin/service suricata reload"
 
 - name: Configurazione log rotation Suricata (newsyslog)
-  copy:
+  ansible.builtin.copy:
     content: |
       # logfilename                              [owner:group]  mode  count  size  wh>
       /var/log/suricata/eve.json                 root:wheel     640   7      10000 @T>
@@ -71,6 +71,6 @@
     mode: '0644'
 
 - name: Assicura che Suricata sia avviato
-  service:
+  ansible.builtin.service:
     name: suricata
     state: started

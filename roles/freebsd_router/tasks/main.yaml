@@ -6,20 +6,20 @@
     key: "{{ lookup('file', pub_key_path) }}"
 
 - name: Hardening SSH - Disabilita autenticazione con password
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: '^#?PasswordAuthentication'
     line: 'PasswordAuthentication no'
     validate: '/usr/sbin/sshd -t -f %s'
-  notify: restart sshd
+  notify: Restart sshd
 
 - name: Hardening SSH - Disabilita accesso root
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: '^#?PermitRootLogin'
     line: 'PermitRootLogin no'
     validate: '/usr/sbin/sshd -t -f %s'
-  notify: restart sshd
+  notify: Restart sshd
 
 - name: Installazione pacchetto ipdbtools per GeoBlocking
   community.general.pkgng:
@@ -27,7 +27,7 @@
     state: present
 
 - name: Creazione script di aggiornamento GeoBlocking
-  template:
+  ansible.builtin.template:
     src: update_blocked_countries.sh.j2
     dest: /usr/local/sbin/update_blocked_countries.sh
     owner: root
@@ -35,12 +35,12 @@
     mode: '0755'
 
 - name: Primo download del database IP (ipdb-update)
-  command: /usr/local/bin/ipdb-update.sh
+  ansible.builtin.command: /usr/local/bin/ipdb-update.sh
   args:
     creates: /usr/local/share/ipdb/ipdb.db # Lo esegue solo se il DB non esiste
 
 - name: Automazione aggiornamento GeoBlocking via Cron
-  cron:
+  ansible.builtin.cron:
     name: "Update GeoBlocking Database"
     user: "root"
     minute: "55"
@@ -48,7 +48,7 @@
     job: "/usr/local/bin/ipdb-update.sh > /dev/null 2>&1 && /usr/local/sbin/update_blocked_countries.sh"
 
 - name: Assicura l'esecuzione al reboot via Cron
-  cron:
+  ansible.builtin.cron:
     name: "Update GeoBlocking on Reboot"
     user: "root"
     special_time: reboot
@@ -60,13 +60,13 @@
     state: present
 
 - name: Installazione expiretable (opzionale) o pulizia via Cron
-  cron:
+  ansible.builtin.cron:
     name: "Svuota tabella bruteforce ogni ora"
     minute: "0"
     job: "/sbin/pfctl -t bruteforce -T expire 86400" # 86400 secondi = 24h
 
 - name: Configurazione privilegi doas
-  copy:
+  ansible.builtin.copy:
     content: "permit persist :wheel\n"
     dest: /usr/local/etc/doas.conf
     mode: '0400'
@@ -82,21 +82,22 @@
     - {key: "pflog_enable", value: "YES"}
 
 - name: Inizializzazione manuale della tabella blocked_countries
-  shell: pfctl -t blocked_countries -T add 127.0.0.2
-  failed_when: false # Non fallire se la tabella esiste già o PF non è ancora attivo
+  ansible.builtin.command: pfctl -t blocked_countries -T add 127.0.0.2
+  changed_when: false
+  failed_when: false
 
 - name: Configurazione file PF (con validazione)
-  template:
+  ansible.builtin.template:
     src: pf.conf.j2
     dest: /etc/pf.conf
     owner: root
     group: wheel
     mode: '0600'
     validate: /sbin/pfctl -nf %s
-  notify: reload pf
+  notify: Reload pf
 
 - name: Attivazione immediata del forwarding nel kernel
-  sysctl:
+  ansible.posix.sysctl:
     name: net.inet.ip.forwarding
     value: '1'
     state: present
@@ -110,14 +111,14 @@
 
 # ... Configurazione Unbound come DNS Resolver
 - name: Configurazione di Unbound
-  template:
+  ansible.builtin.template:
     src: unbound.conf.j2
     dest: /usr/local/etc/unbound/unbound.conf
     owner: root
     group: wheel
     mode: '0644'
     validate: /usr/local/sbin/unbound-checkconf %s
-  notify: restart unbound
+  notify: Restart unbound
 
 - name: Abilitazione Unbound nel rc.conf
   community.general.sysrc:
@@ -125,7 +126,7 @@
     value: "YES"
 
 - name: Assicura che Unbound sia avviato
-  service:
+  ansible.builtin.service:
     name: unbound
     state: started
 
@@ -136,13 +137,13 @@
     state: present
 
 - name: Configurazione DHCPD
-  template:
+  ansible.builtin.template:
     src: dhcpd.conf.j2
     dest: /usr/local/etc/dhcpd.conf
     owner: root
     group: wheel
     mode: '0644'
-  notify: restart dhcpd
+  notify: Restart dhcpd
 
 - name: Abilitazione DHCPD nel rc.conf e selezione interfaccia
   community.general.sysrc:
@@ -153,7 +154,7 @@
     - {key: "dhcpd_ifaces", value: "{{ int_if }}"} # vtnet1
 
 - name: Assicura che DHCPD sia avviato
-  service:
+  ansible.builtin.service:
     name: isc-dhcpd
     state: started
 
@@ -167,14 +168,14 @@
   tags: [upgrade, never]
 
 - name: Audit pacchetti per vulnerabilità note
-  command: pkg audit -F
+  ansible.builtin.command: pkg audit -F
   register: pkg_audit
   changed_when: false
   failed_when: false
   tags: [upgrade, never]
 
 - name: Mostra risultato audit
-  debug:
+  ansible.builtin.debug:
     var: pkg_audit.stdout_lines
   when: pkg_audit.stdout_lines | length > 0
   tags: [upgrade, never]
