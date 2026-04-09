@@ -1,4 +1,3 @@
-# ansible-freebsd-pf
 ![CI Status](https://github.com/kronosblade/ansible-freebsd-pf/actions/workflows/linting.yml/badge.svg)
 
 # FreeBSD Ansible Router & Firewall

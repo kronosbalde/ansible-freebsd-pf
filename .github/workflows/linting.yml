@@ -3,6 +3,10 @@ name: "CI: Linting"
 "on":
   push:
     branches: [main]
+    paths:
+      - "**.yml"
+      - "**.yaml"
+      - "roles/**"
   pull_request:
     branches: [main]
 
