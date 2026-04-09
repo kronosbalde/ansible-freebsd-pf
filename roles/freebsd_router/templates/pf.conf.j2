@@ -24,6 +24,9 @@ set loginterface $ext_if
 # Protezione contro frammentazione e pacchetti malformati
 scrub in all fragment reassemble
 
+# Protezione anti-spoofing
+antispoof quick for { $ext_if, $int_if }
+
 # ==============================================================================
 # --- 3. Translation (NAT & RDR) ---
 # ==============================================================================
@@ -61,9 +64,10 @@ pass in quick on $ext_if proto tcp from <trusted_lan> to ($ext_if) port $ssh_por
 # DNS (Unbound): Risoluzione per i client della rete interna
 pass in quick on $int_if proto { tcp, udp } from $int_if:network to $int_if port 53 keep state
 
-# ICMP: Permette il ping per diagnostica (Interno e Admin esterno)
-pass in quick on $int_if proto icmp from $int_if:network to $int_if
-pass in quick on $ext_if proto icmp from <trusted_lan> to ($ext_if)
+# ICMP: Permette ping e PMTUD (unreach/needfrag) per evitare connessioni appese
+pass in quick on $int_if inet proto icmp icmp-type { echoreq, unreach } from $int_if:network to $int_if keep state
+pass in quick on $ext_if inet proto icmp icmp-type { echoreq, unreach } from <trusted_lan> to ($ext_if) keep state
+pass in quick on $ext_if inet proto icmp icmp-type { unreach } keep state
 
 # --- D. Forwarding (Traffico verso i Server interni) ---
 
