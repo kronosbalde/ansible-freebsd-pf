@@ -24,13 +24,10 @@ set loginterface $ext_if
 # Protezione contro frammentazione e pacchetti malformati
 scrub in all fragment reassemble
 
-# Protezione anti-spoofing
-antispoof quick for { $ext_if, $int_if }
-
 # ==============================================================================
 # --- 3. Translation (NAT & RDR) ---
 # ==============================================================================
-# NAT: Permette alla rete 10.0.0.0/24 di uscire su Internet tramite l'IP $ext_if
+# NAT: Permette alla rete interna di uscire su Internet tramite l'IP della WAN
 nat on $ext_if from $int_net to any -> ($ext_if) static-port
 
 # Redirect Mumble
@@ -39,6 +36,10 @@ rdr on $ext_if proto { tcp, udp } from any to ($ext_if) port $mumble_port -> $mu
 # ==============================================================================
 # --- 4. Filtering Rules (Ordine: Block -> Pass) ---
 # ==============================================================================
+
+# Protezione anti-spoofing
+antispoof quick for $ext_if
+antispoof quick for $int_if
 
 # --- A. Blocchi Immediati (Sicurezza) ---
 block in quick from <bruteforce>
@@ -65,9 +66,9 @@ pass in quick on $ext_if proto tcp from <trusted_lan> to ($ext_if) port $ssh_por
 pass in quick on $int_if proto { tcp, udp } from $int_if:network to $int_if port 53 keep state
 
 # ICMP: Permette ping e PMTUD (unreach/needfrag) per evitare connessioni appese
-pass in quick on $int_if inet proto icmp icmp-type { echoreq, unreach } from $int_if:network to $int_if keep state
-pass in quick on $ext_if inet proto icmp icmp-type { echoreq, unreach } from <trusted_lan> to ($ext_if) keep state
-pass in quick on $ext_if inet proto icmp icmp-type { unreach } keep state
+pass in quick on $int_if proto icmp from $int_if:network to $int_if icmp-type echoreq keep state
+pass in quick on $ext_if inet proto icmp from <trusted_lan> to ($ext_if) icmp-type echoreq keep state
+pass in quick inet proto icmp icmp-type unreach keep state
 
 # --- D. Forwarding (Traffico verso i Server interni) ---
 
@@ -79,5 +80,5 @@ pass in quick on $ext_if proto tcp from any to $mumble_ip port $mumble_port \
 pass in quick on $ext_if proto udp from any to $mumble_ip port $mumble_port keep state
 
 # --- E. Forwarding Generale LAN (Traffico che attraversa il Router) ---
-# Permette alla LAN (10.0.0.0/24) di navigare su Internet
+# Permette alla LAN di navigare su Internet
 pass in on $int_if from $int_if:network to any keep state
