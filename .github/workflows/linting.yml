@@ -1,0 +1,48 @@
+name: "CI: Linting"
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  lint:
+    # Usiamo Ubuntu per il linting statico (Python/Ansible-lint)
+    # indipendentemente dall'OS di destinazione del router.
+    name: "Static Analysis"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+
+      - name: "YAML Lint"
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: "."
+          config_file: ".yamllint"
+
+      - name: "Ansible Lint"
+        uses: ansible/ansible-lint@main
+        with:
+          setup_python: true
+
+  validate-templates:
+    name: "Dry-run Template Rendering"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+
+      - name: "Setup Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: "Install Ansible"
+        run: pip install ansible
+
+      - name: "Syntax Check Playbook"
+        run: |
+          # Verifica che il playbook sia scritto correttamente
+          ansible-playbook site.yml --syntax-check

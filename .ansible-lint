@@ -1,0 +1,10 @@
+# Configurazione per Ansible Lint
+exclude_paths:
+  - .github/
+  - .git/
+  - roles/external/
+
+# Regole specifiche da ignorare se troppo pignole per il tuo setup
+skip_list:
+  - name-prefix-none
+  - var-naming[no-role-prefix]
