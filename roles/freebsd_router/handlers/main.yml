@@ -2,6 +2,11 @@
 - name: reload pf
   shell: /sbin/pfctl -f /etc/pf.conf
 
+- name: restart sshd
+  service:
+    name: sshd
+    state: restarted
+
 - name: restart unbound
   service:
     name: unbound
