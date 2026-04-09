@@ -15,8 +15,8 @@
     name: net.inet.ip.redirect
     value: '0'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 - name: "Tuning: ignora ICMP redirect ricevuti"
@@ -24,8 +24,8 @@
     name: net.inet.icmp.drop_redirect
     value: '1'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 # --- Buffer di rete ---
@@ -35,8 +35,8 @@
     name: kern.ipc.maxsockbuf
     value: '4194304'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 - name: "Tuning: buffer invio TCP"
@@ -44,8 +44,8 @@
     name: net.inet.tcp.sendbuf_max
     value: '4194304'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 - name: "Tuning: buffer ricezione TCP"
@@ -53,8 +53,8 @@
     name: net.inet.tcp.recvbuf_max
     value: '4194304'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 # --- Protezione e hardening dello stack di rete ---
@@ -64,8 +64,8 @@
     name: net.inet.icmp.bmcastecho
     value: '0'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 - name: "Tuning: abilita RFC1323 TCP window scaling"
@@ -73,8 +73,8 @@
     name: net.inet.tcp.rfc1323
     value: '1'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 - name: "Tuning: drop pacchetti SYN con opzioni TCP sospette"
@@ -82,8 +82,8 @@
     name: net.inet.tcp.blackhole
     value: '2'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 - name: "Tuning: drop pacchetti UDP verso porte chiuse (no ICMP unreachable)"
@@ -91,8 +91,8 @@
     name: net.inet.udp.blackhole
     value: '1'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 - name: "Tuning: genera ID pacchetti IP randomici"
@@ -100,8 +100,8 @@
     name: net.inet.ip.random_id
     value: '1'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 # --- PF: limiti tabelle e stati ---
@@ -111,8 +111,8 @@
     name: net.pf.request_maxcount
     value: '2000000'
     state: present
-    sysctl_set: yes
-    reload: yes
+    sysctl_set: true
+    reload: true
   tags: [tuning, never]
 
 - name: Mostra parametri di tuning applicati
