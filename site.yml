@@ -6,6 +6,9 @@
   roles:
     - freebsd_router
 
+  tasks:
+    - import_tasks: roles/freebsd_router/tasks/tuning.yml
+
 - name: Configura Suricata IDS
   hosts: bsd_router
   become: yes

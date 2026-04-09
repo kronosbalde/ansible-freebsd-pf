@@ -1,0 +1,127 @@
+---
+# ==============================================================================
+# Tuning kernel per router/gateway FreeBSD
+# Eseguire manualmente con: ansible-playbook -i hosts.ini site.yml -K --tags tuning
+#
+# Questi parametri sono ottimizzati per un sistema che fa NAT e forwarding.
+# Non sono universalmente validi: su un server applicativo o una workstation
+# alcuni di questi valori potrebbero essere controproducenti.
+# ==============================================================================
+
+# --- Forwarding e fast path ---
+
+- name: "Tuning: disabilita invio ICMP redirect (il router non deve suggerire rotte alternative)"
+  sysctl:
+    name: net.inet.ip.redirect
+    value: '0'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+- name: "Tuning: ignora ICMP redirect ricevuti"
+  sysctl:
+    name: net.inet.icmp.drop_redirect
+    value: '1'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+# --- Buffer di rete ---
+
+- name: "Tuning: buffer massimo socket"
+  sysctl:
+    name: kern.ipc.maxsockbuf
+    value: '4194304'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+- name: "Tuning: buffer invio TCP"
+  sysctl:
+    name: net.inet.tcp.sendbuf_max
+    value: '4194304'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+- name: "Tuning: buffer ricezione TCP"
+  sysctl:
+    name: net.inet.tcp.recvbuf_max
+    value: '4194304'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+# --- Protezione e hardening dello stack di rete ---
+
+- name: "Tuning: ignora broadcast ICMP (previene attacchi Smurf)"
+  sysctl:
+    name: net.inet.icmp.bmcastecho
+    value: '0'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+- name: "Tuning: abilita RFC1323 TCP window scaling"
+  sysctl:
+    name: net.inet.tcp.rfc1323
+    value: '1'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+- name: "Tuning: drop pacchetti SYN con opzioni TCP sospette"
+  sysctl:
+    name: net.inet.tcp.blackhole
+    value: '2'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+- name: "Tuning: drop pacchetti UDP verso porte chiuse (no ICMP unreachable)"
+  sysctl:
+    name: net.inet.udp.blackhole
+    value: '1'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+- name: "Tuning: genera ID pacchetti IP randomici"
+  sysctl:
+    name: net.inet.ip.random_id
+    value: '1'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+# --- PF: limiti tabelle e stati ---
+
+- name: "Tuning: limite massimo entry nelle tabelle PF"
+  sysctl:
+    name: net.pf.request_maxcount
+    value: '2000000'
+    state: present
+    sysctl_set: yes
+    reload: yes
+  tags: [tuning, never]
+
+- name: Mostra parametri di tuning applicati
+  command: sysctl net.inet.ip.redirect net.inet.icmp.drop_redirect kern.ipc.maxsockbuf net.inet.tcp.sendbuf_max net.inet.tcp.recvbuf_max net.inet.tcp.blackhole net.inet.udp.blackhole net.inet.ip.random_id net.pf.request_maxcount
+  register: tuning_result
+  changed_when: false
+  tags: [tuning, never]
+
+- name: Risultato tuning
+  debug:
+    var: tuning_result.stdout_lines
+  tags: [tuning, never]
