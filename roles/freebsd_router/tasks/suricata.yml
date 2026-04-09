@@ -57,6 +57,19 @@
     minute: "30"
     job: "/usr/local/bin/suricata-update --disable-conf /usr/local/etc/suricata/disable.conf > /dev/null 2>&1 && /usr/sbin/service suricata reload"
 
+- name: Configurazione log rotation Suricata (newsyslog)
+  copy:
+    content: |
+      # logfilename                              [owner:group]  mode  count  size  wh>
+      /var/log/suricata/eve.json                 root:wheel     640   7      10000 @T>
+      /var/log/suricata/fast.log                 root:wheel     640   7      *     @T>
+      /var/log/suricata/suricata.log             root:wheel     640   7      *     @T>
+      /var/log/suricata/stats.log                root:wheel     640   7      *     @T>
+    dest: /etc/newsyslog.conf.d/suricata.conf
+    owner: root
+    group: wheel
+    mode: '0644'
+
 - name: Assicura che Suricata sia avviato
   service:
     name: suricata
