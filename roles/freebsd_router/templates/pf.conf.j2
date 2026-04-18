@@ -63,8 +63,12 @@ pass in quick on $ext_if proto tcp from <trusted_lan> to ($ext_if) port $ssh_por
 # DNS (Unbound): Risoluzione per i client della rete interna
 pass in quick on $int_if proto { tcp, udp } from $int_if:network to $int_if port 53 keep state
 
-# NTP: Sincronizzazione oraria per i client della rete interna (LAN-only)
+# NTP: Sincronizzazione oraria per i client della rete interna
 pass in quick on $int_if proto udp from $int_if:network to $int_if port 123 keep state
+{% if admin_net | default('') %}
+# NTP: accesso anche dalla subnet upstream (admin_net), per workstation lato WAN
+pass in quick on $ext_if proto udp from {{ admin_net }} to ($ext_if) port 123 keep state
+{% endif %}
 
 # ICMP: Permette ping e PMTUD (unreach/needfrag) per evitare connessioni appese
 pass in quick on $int_if proto icmp from $int_if:network to $int_if icmp-type echoreq keep state
