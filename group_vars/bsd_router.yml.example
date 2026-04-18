@@ -2,7 +2,14 @@
 # --- Variabili di Rete ---
 ext_if: "vtnet0"
 int_if: "vtnet1"
-int_net: "1.2.3.4/24"
+int_net: "10.0.0.0/24"
+lan_ip: "10.0.0.1"             # IP del router sull'interfaccia interna (usato da Unbound)
+lan_network: "10.0.0.0/24"     # CIDR LAN interna (usato da Unbound access-control)
+
+# --- DHCP (rete interna) ---
+dhcp_router_ip: "10.0.0.1"
+dhcp_range_start: "10.0.0.100"
+dhcp_range_end: "10.0.0.200"
 
 # --- Indirizzi IP e Porte ---
 ssh_port: "1234"
@@ -12,6 +19,10 @@ admin_ip: "192.168.0.x"
 # Subnet upstream (WAN-side) autorizzata a usare il router come server NTP.
 # Lasciare vuoto ("") per mantenere NTP strettamente LAN-only.
 admin_net: "192.168.0.0/24"
+
+# --- GeoBlocking ---
+# Codici ISO 3166-1 alpha-2 separati da ":". Es: "CN:RU:KP:IR"
+geoblock_countries: "CN:RU:KP:IR"
 
 # --- Utente e Chiavi ---
 user_name: "username"

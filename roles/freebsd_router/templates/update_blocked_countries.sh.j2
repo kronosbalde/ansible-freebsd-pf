@@ -1,38 +1,26 @@
 #!/bin/sh
 # Generato da Ansible - Non modificare a mano
 
-original_file="/var/db/blocked_countries.txt"
-temp_file="/tmp/blocked_countries_temp.txt"
-batch_size=10000
+set -eu
 
-# Scarica/Genera i dati aggiornati
-/usr/local/bin/ipup -p -t CL:RU:FR:PT > $original_file
+COUNTRIES="{{ geoblock_countries }}"
+BLOCK_FILE="/var/db/blocked_countries.txt"
+TMP_FILE="$(mktemp /tmp/blocked_countries.XXXXXX)"
+trap 'rm -f "$TMP_FILE"' EXIT
 
-# Verifica che il download sia riuscito prima di flussare la tabella
-if [ ! -s "$original_file" ]; then
-    echo "Errore: download fallito o file vuoto. Tabella invariata."
+# Scarica/genera i dati aggiornati su file temporaneo
+/usr/local/bin/ipup -p -t "$COUNTRIES" > "$TMP_FILE"
+
+# Verifica che il download sia riuscito e non sia vuoto
+if [ ! -s "$TMP_FILE" ]; then
+    echo "Errore: download fallito o file vuoto. Tabella invariata." >&2
     exit 1
 fi
 
-# Funzione per aggiungere batch
-add_batch() {
-    /sbin/pfctl -t blocked_countries -T add -f "$temp_file"
-    > $temp_file
-}
+# Rimpiazza atomicamente il file persistente
+mv "$TMP_FILE" "$BLOCK_FILE"
+# mktemp è stato pulito dal trap; disarmalo per evitare warning sul mv
+trap - EXIT
 
-# Reset della tabella per evitare duplicati/conflitti
-/sbin/pfctl -t blocked_countries -T flush
-
-line_count=0
-while IFS= read -r line; do
-    echo "$line" >> "$temp_file"
-    line_count=$((line_count + 1))
-    if [ $line_count -ge $batch_size ]; then
-        add_batch
-        line_count=0
-    fi
-done < "$original_file"
-
-if [ $line_count -gt 0 ]; then
-    add_batch
-fi
+# Replace atomico della tabella PF: nessuna finestra di tabella vuota
+/sbin/pfctl -t blocked_countries -T replace -f "$BLOCK_FILE"

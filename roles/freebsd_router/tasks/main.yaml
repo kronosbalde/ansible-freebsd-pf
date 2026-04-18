@@ -1,9 +1,10 @@
 ---
-- name: Configura la chiave SSH autorizzata
+- name: Configura la chiave SSH autorizzata (exclusive = rimuove chiavi non gestite)
   ansible.posix.authorized_key:
     user: "{{ user_name }}"
     state: present
     key: "{{ lookup('file', pub_key_path) }}"
+    exclusive: true
 
 - name: Hardening SSH - Disabilita autenticazione con password
   ansible.builtin.lineinfile:
@@ -38,6 +39,14 @@
   ansible.builtin.command: /usr/local/bin/ipdb-update.sh
   args:
     creates: /usr/local/share/ipdb/ipdb.db # Lo esegue solo se il DB non esiste
+  async: 900   # timeout 15 min: lo script scarica da 5 RIR, può essere lento
+  poll: 30     # polling ogni 30s per non far sembrare il task appeso
+  register: ipdb_result
+
+- name: Ultime righe output ipdb-update (solo se ha girato)
+  ansible.builtin.debug:
+    msg: "{{ ipdb_result.stdout_lines[-20:] | default(['nessun output']) }}"
+  when: ipdb_result.changed | default(false)
 
 - name: Automazione aggiornamento GeoBlocking via Cron
   ansible.builtin.cron:
@@ -56,7 +65,7 @@
 
 - name: Installazione pacchetti di sistema
   community.general.pkgng:
-    name: [doas, htop, nano, tree, bind-tools]
+    name: [doas, htop, nano, tree, bind-tools, ca_root_nss]
     state: present
 
 - name: Installazione expiretable (opzionale) o pulizia via Cron

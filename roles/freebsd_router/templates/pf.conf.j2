@@ -82,7 +82,8 @@ pass in quick on $ext_if proto tcp from any to $mumble_ip port $mumble_port \
     flags S/SA keep state \
     (max-src-conn 20, max-src-conn-rate 10/60, overload <bruteforce> flush global)
 
-pass in quick on $ext_if proto udp from any to $mumble_ip port $mumble_port keep state
+pass in quick on $ext_if proto udp from any to $mumble_ip port $mumble_port \
+    keep state (max-src-states 10, source-track rule)
 
 # --- E. Forwarding Generale LAN (Traffico che attraversa il Router) ---
 # Permette alla LAN di navigare su Internet
