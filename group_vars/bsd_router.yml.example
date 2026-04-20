@@ -16,9 +16,6 @@ ssh_port: "1234"
 mumble_jail_ip: "1.2.3.4"
 mumble_port: "1234"
 admin_ip: "192.168.0.x"
-# Subnet upstream (WAN-side) autorizzata a usare il router come server NTP.
-# Lasciare vuoto ("") per mantenere NTP strettamente LAN-only.
-admin_net: "192.168.0.0/24"
 
 # --- GeoBlocking ---
 # Codici ISO 3166-1 alpha-2 separati da ":". Es: "CN:RU:KP:IR"

@@ -63,13 +63,6 @@ pass in quick on $ext_if proto tcp from <trusted_lan> to ($ext_if) port $ssh_por
 # DNS (Unbound): Risoluzione per i client della rete interna
 pass in quick on $int_if proto { tcp, udp } from $int_if:network to $int_if port 53 keep state
 
-# NTP: Sincronizzazione oraria per i client della rete interna
-pass in quick on $int_if proto udp from $int_if:network to $int_if port 123 keep state
-{% if admin_net | default('') %}
-# NTP: accesso anche dalla subnet upstream (admin_net), per workstation lato WAN
-pass in quick on $ext_if proto udp from {{ admin_net }} to ($ext_if) port 123 keep state
-{% endif %}
-
 # ICMP: Permette ping e PMTUD (unreach/needfrag) per evitare connessioni appese
 pass in quick on $int_if proto icmp from $int_if:network to $int_if icmp-type echoreq keep state
 pass in quick on $ext_if inet proto icmp from <trusted_lan> to ($ext_if) icmp-type echoreq keep state
@@ -78,12 +71,15 @@ pass in quick inet proto icmp icmp-type unreach keep state
 # --- D. Forwarding (Traffico verso i Server interni) ---
 
 # Mumble: Accesso pubblico al server 10.0.0.x
+# Niente overload<bruteforce>: client legittimi dietro NAT/CGNAT o in reconnect
+# loop verrebbero bannati globalmente (SSH/web inclusi). Limiti permissivi —
+# i nuovi stati oltre soglia vengono droppati solo per questa regola.
 pass in quick on $ext_if proto tcp from any to $mumble_ip port $mumble_port \
     flags S/SA keep state \
-    (max-src-conn 20, max-src-conn-rate 10/60, overload <bruteforce> flush global)
+    (max-src-conn 100, max-src-conn-rate 60/60, source-track rule)
 
 pass in quick on $ext_if proto udp from any to $mumble_ip port $mumble_port \
-    keep state (max-src-states 10, source-track rule)
+    keep state (max-src-states 100, source-track rule)
 
 # --- E. Forwarding Generale LAN (Traffico che attraversa il Router) ---
 # Permette alla LAN di navigare su Internet

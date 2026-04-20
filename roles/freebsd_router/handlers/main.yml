@@ -17,8 +17,3 @@
   ansible.builtin.service:
     name: isc-dhcpd
     state: restarted
-
-- name: Restart ntpd
-  ansible.builtin.service:
-    name: ntpd
-    state: restarted
