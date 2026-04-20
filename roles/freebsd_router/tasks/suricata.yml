@@ -42,7 +42,7 @@
 
 - name: Deploy configurazione Suricata
   ansible.builtin.template:
-    src: "{{ playbook_dir }}/roles/freebsd_router/templates/suricata.yaml.j2"
+    src: suricata.yaml.j2
     dest: /usr/local/etc/suricata/suricata.yaml
     owner: root
     group: wheel
