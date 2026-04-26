@@ -28,12 +28,13 @@ Filtro di pacchetti stateful, default-deny in ingresso (whitelist). La configura
 - **Rate limiting Mumble**: limiti permissivi con `source-track rule` per non penalizzare client legittimi dietro NAT.
 - **Anti-spoofing**: `antispoof` su entrambe le interfacce.
 
-### GeoBlocking Dinamico
-Integrazione con [ipdbtools](https://it-notes.dragas.net/2024/06/16/freebsd-blocking-country-access) per il filtraggio geografico per paese (ISO 3166-1 alpha-2).
+### Filtraggio Geografico Dinamico
+Integrazione con [ipdbtools](https://it-notes.dragas.net/2024/06/16/freebsd-blocking-country-access) per il filtraggio per paese (ISO 3166-1 alpha-2). La modalità è selezionabile tramite la variabile `geoblock_mode`:
 
-- Sostituzione atomica della tabella PF (`pfctl -T replace -f`), nessuna finestra senza blocco.
-- Cron job per aggiornamento quotidiano e al riavvio.
-- Paesi configurabili tramite `geoblock_countries` (es. `"CN:RU:KP:IR"`).
+- **`whitelist`** (default del progetto) — ammette solo i paesi in `geoblock_countries`, blocca tutto il resto del traffico WAN. Lista predefinita: UE + EEA + Regno Unito + Svizzera (32 codici, GB esplicito).
+- **`blacklist`** — comportamento legacy: blocca solo i paesi elencati.
+
+Il passaggio fra le due modalità avviene cambiando una sola variabile e rilanciando il playbook. La tabella PF `<geo_countries>` viene aggiornata atomicamente (`pfctl -T replace -f`); cron job giornaliero e al boot. In modalità whitelist viene aggiunto un `pass <trusted_lan>` prima del blocco per evitare lockout dell'amministratore.
 
 ### Unbound DNS Resolver
 Resolver locale con **DNS-over-TLS** verso Quad9 (`9.9.9.9`) e Cloudflare (`1.1.1.1`) sulla porta 853.
@@ -47,6 +48,9 @@ Assegna IP ai client della LAN interna con gateway e DNS del router come default
 
 ### Suricata IDS *(detection only)*
 Intrusion Detection System in modalità passiva (pcap) sull'interfaccia WAN, analizza il traffico senza interromperlo, nessuna modalità inline/IPS. Ruleset Emerging Threats Open con aggiornamento automatico notturno via cron. Invocabile separatamente con `--tags suricata`.
+
+### Endpoint dedicato *(opt-in)*
+Role separata `gaming` per esporre un host LAN su porte specifiche con redirect e regole di filtraggio dedicate. Le regole sono distribuite in due anchor PF distinti (`gaming.rdr` e `gaming.filter`) per rispettare l'ordine di valutazione richiesto dal kernel. Attivabile solo con `--tags gaming`, richiede `gaming_host`, `gaming_lan_port`, `gaming_wan_port` configurati.
 
 ## Guida Rapida
 
@@ -73,6 +77,9 @@ ansible-playbook -i hosts.ini site.yml
 # Suricata IDS
 ansible-playbook -i hosts.ini site.yml --tags suricata
 
+# Endpoint dedicato (gaming/servizio su host LAN)
+ansible-playbook -i hosts.ini site.yml --tags gaming
+
 # Tuning kernel (sysctl NAT/forwarding)
 ansible-playbook -i hosts.ini site.yml -K --tags tuning
 
@@ -86,8 +93,8 @@ ansible-playbook -i hosts.ini site.yml -K --tags upgrade
 # IP bannati per brute force
 doas pfctl -t bruteforce -T show
 
-# IP bloccati per nazione
-doas pfctl -t blocked_countries -T show
+# Tabella geo (whitelist o blacklist a seconda di geoblock_mode)
+doas pfctl -t geo_countries -T show
 
 # Log firewall in tempo reale
 doas tcpdump -n -e -ttt -i pflog0

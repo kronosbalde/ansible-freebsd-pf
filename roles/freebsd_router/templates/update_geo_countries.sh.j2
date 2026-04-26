@@ -1,11 +1,13 @@
 #!/bin/sh
 # Generato da Ansible - Non modificare a mano
+# Popola la tabella PF <geo_countries> con i range IP dei paesi configurati.
+# Il significato (whitelist o blacklist) è deciso da pf.conf in base a geoblock_mode.
 
 set -eu
 
 COUNTRIES="{{ geoblock_countries }}"
-BLOCK_FILE="/var/db/blocked_countries.txt"
-TMP_FILE="$(mktemp /tmp/blocked_countries.XXXXXX)"
+GEO_FILE="/var/db/geo_countries.txt"
+TMP_FILE="$(mktemp /tmp/geo_countries.XXXXXX)"
 trap 'rm -f "$TMP_FILE"' EXIT
 
 # Scarica/genera i dati aggiornati su file temporaneo
@@ -18,9 +20,9 @@ if [ ! -s "$TMP_FILE" ]; then
 fi
 
 # Rimpiazza atomicamente il file persistente
-mv "$TMP_FILE" "$BLOCK_FILE"
+mv "$TMP_FILE" "$GEO_FILE"
 # mktemp è stato pulito dal trap; disarmalo per evitare warning sul mv
 trap - EXIT
 
 # Replace atomico della tabella PF: nessuna finestra di tabella vuota
-/sbin/pfctl -t blocked_countries -T replace -f "$BLOCK_FILE"
+/sbin/pfctl -t geo_countries -T replace -f "$GEO_FILE"

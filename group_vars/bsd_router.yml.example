@@ -18,8 +18,18 @@ mumble_port: "1234"
 admin_ip: "192.168.0.x"
 
 # --- GeoBlocking ---
-# Codici ISO 3166-1 alpha-2 separati da ":". Es: "CN:RU:KP:IR"
-geoblock_countries: "CN:RU:KP:IR"
+# Modalità del filtro geografico:
+#   "blacklist" -> blocca i paesi elencati in geoblock_countries
+#   "whitelist" -> ammette SOLO i paesi elencati, blocca tutto il resto sul WAN
+geoblock_mode: "whitelist"
+
+# Codici ISO 3166-1 alpha-2 separati da ":".
+# Whitelist EU + EEA + UK + CH (GB incluso esplicitamente come prioritario).
+geoblock_countries: "AT:BE:BG:HR:CY:CZ:DK:EE:FI:FR:DE:GR:HU:IE:IT:LV:LT:LU:MT:NL:PL:PT:RO:SK:SI:ES:SE:IS:LI:NO:GB:CH"
+
+# Esempio configurazione blacklist alternativa:
+# geoblock_mode: "blacklist"
+# geoblock_countries: "CN:RU:KP:IR"
 
 # --- Utente e Chiavi ---
 user_name: "username"

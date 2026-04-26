@@ -51,13 +51,14 @@
     name: ipdbtools
     state: present
 
-- name: Creazione script di aggiornamento GeoBlocking
+- name: Creazione script di aggiornamento tabella geo_countries
   ansible.builtin.template:
-    src: update_blocked_countries.sh.j2
-    dest: /usr/local/sbin/update_blocked_countries.sh
+    src: update_geo_countries.sh.j2
+    dest: /usr/local/sbin/update_geo_countries.sh
     owner: root
     group: wheel
     mode: '0755'
+  notify: Update geo countries table
 
 - name: Primo download del database IP (ipdb-update)
   ansible.builtin.command: /usr/local/bin/ipdb-update.sh
@@ -72,20 +73,36 @@
     msg: "{{ ipdb_result.stdout_lines[-20:] | default(['nessun output']) }}"
   when: ipdb_result.changed | default(false)
 
+- name: Garantisce primo popolamento tabella geo_countries
+  ansible.builtin.command: /usr/local/sbin/update_geo_countries.sh
+  args:
+    creates: /var/db/geo_countries.txt   # eseguito solo se il file non esiste
+
+- name: Flush handlers per allineare la tabella prima del reload PF
+  ansible.builtin.meta: flush_handlers
+
 - name: Automazione aggiornamento GeoBlocking via Cron
   ansible.builtin.cron:
     name: "Update GeoBlocking Database"
     user: "root"
     minute: "55"
     hour: "9"
-    job: "/usr/local/bin/ipdb-update.sh > /dev/null 2>&1 && /usr/local/sbin/update_blocked_countries.sh"
+    job: "/usr/local/bin/ipdb-update.sh > /dev/null 2>&1 && /usr/local/sbin/update_geo_countries.sh"
 
 - name: Assicura l'esecuzione al reboot via Cron
   ansible.builtin.cron:
     name: "Update GeoBlocking on Reboot"
     user: "root"
     special_time: reboot
-    job: "/usr/local/bin/ipdb-update.sh > /dev/null 2>&1 && /usr/local/sbin/update_blocked_countries.sh"
+    job: "/usr/local/bin/ipdb-update.sh > /dev/null 2>&1 && /usr/local/sbin/update_geo_countries.sh"
+
+- name: Pulizia artefatti del vecchio nome blocked_countries
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /usr/local/sbin/update_blocked_countries.sh
+    - /var/db/blocked_countries.txt
 
 - name: Installazione pacchetti di sistema
   community.general.pkgng:

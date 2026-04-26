@@ -9,9 +9,9 @@ admin_ip    = "{{ admin_ip }}"
 mumble_ip   = "{{ mumble_jail_ip }}"
 mumble_port = "{{ mumble_port }}"
 # Tabelle per una gestione dinamica e sicura
-table <trusted_lan>       const { {{ admin_ip }}, 127.0.0.1 }
-table <bruteforce>        persist
-table <blocked_countries> persist
+table <trusted_lan>   const { {{ admin_ip }}, 127.0.0.1 }
+table <bruteforce>    persist
+table <geo_countries> persist
 
 # ==============================================================================
 # --- 2. Options & Normalization ---
@@ -45,7 +45,13 @@ antispoof quick for $int_if
 
 # --- A. Blocchi Immediati (Sicurezza) ---
 block in quick from <bruteforce>
-block in quick from <blocked_countries>
+{% if geoblock_mode == 'whitelist' %}
+# Whitelist: il pass <trusted_lan> precede il block geo per evitare lockout admin
+pass in quick on $ext_if from <trusted_lan>
+block in quick on $ext_if from ! <geo_countries>
+{% else %}
+block in quick from <geo_countries>
+{% endif %}
 block in all
 
 # --- B. Traffico in Uscita (Outbound) ---
